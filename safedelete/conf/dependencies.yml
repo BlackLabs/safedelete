@@ -1,0 +1,4 @@
+self: play -> safedelete 0.1
+
+require:
+    - play
