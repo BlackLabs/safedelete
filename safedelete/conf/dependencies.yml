@@ -2,3 +2,4 @@ self: play -> safedelete 0.1
 
 require:
     - play
+    - org.reflections -> reflections 0.9.9-RC1
