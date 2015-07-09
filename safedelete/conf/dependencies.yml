@@ -2,4 +2,4 @@ self: play -> safedelete 0.1
 
 require:
     - play
-    - org.reflections -> reflections 0.9.9-RC1
+    - play -> morphia 1.2.12
