@@ -83,7 +83,7 @@ public class SafeDeleteEnhancer extends Enhancer {
                 .collect(Collectors.toList());
 
         String referencedByGetter = String.format(
-                "public static Object %s(){\n"
+                "public static Class[] %s(){\n"
                 + "    %s"
                 + "}",
                 METHOD_NAME,
