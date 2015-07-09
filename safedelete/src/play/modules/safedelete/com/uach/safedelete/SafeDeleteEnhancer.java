@@ -13,9 +13,9 @@ import play.classloading.ApplicationClasses.ApplicationClass;
 import play.classloading.enhancers.Enhancer;
 
 /**
- * Agrega un atributo {@code Set<Class<?>>} llamado
- * <i>referencedBy</i> a las clases modelos de Morphia (anotadas con
- * {@link Entity}), con las clases que hacen referencia a esta clase. Además,
+ * Agrega un método {@code Set<Class<?>>} llamado
+ * <i>getReferencedBy</i> a las clases modelos de Morphia (anotadas con
+ * {@link Entity}), que devuelve un arreglo con las clases que hacen referencia a esta clase. Además,
  * agrega un método para acceder al Set creado
  * 
 */
