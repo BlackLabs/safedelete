@@ -1,11 +1,13 @@
 package com.uach.safedelete;
 
 //import com.google.code.morphia.annotations.Entity;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javassist.CtClass;
@@ -15,6 +17,7 @@ import javassist.Modifier;
 import javassist.NotFoundException;
 import org.reflections.Reflections;
 import play.Logger;
+import play.Play;
 import play.classloading.ApplicationClasses.ApplicationClass;
 import play.classloading.enhancers.Enhancer;
 
@@ -75,31 +78,76 @@ public class SafeDeleteEnhancer extends Enhancer {
 
 //        ctClass.defrost();
 //        ctClass.stopPruning(true);
-        Reflections reflections = new Reflections(PROJECT_PREFIX);
 
-        Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(SafeDelete.class);
-        System.out.println("annotatedClasses.size() = " + annotatedClasses.size());
+//        Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(SafeDelete.class);
+        Set<Class<?>> annotatedClasses = new HashSet<>();
 
-        Reflections reflections2 = new Reflections(PROJECT_PREFIX2);
-        Set<Class<?>> annotatedClasses2 = reflections.getSubTypesOf(Object.class);
-        Set<Class<?>> annotatedClasses3 = reflections.getSubTypesOf(Object.class);
+//        Play.classloader.
+        List<ApplicationClass> allClasses = Play.classes.all();
+        System.out.println("allClasses.size() = " + allClasses.size());
+        
+        System.out.println("Play.classes.all().size() = " + Play.classes.all().size());
 
-        System.out.println("annotatedClasses2.size() = " + annotatedClasses2.size());
-        System.out.println("annotatedClasses3.size() = " + annotatedClasses3.size());
-        for (Class<?> class1 : annotatedClasses2) {
-            System.out.println("class1 = " + class1);
-        }
-        
+        List<ApplicationClass> candidateClasses = allClasses.stream()
+                .filter(
+                        (appClass) -> {
+//                            return clazz.(SafeDelete.class);
+                            try {
+                                return makeClass(appClass).hasAnnotation(SafeDelete.class);
+                            } catch (IOException e) {
+                                System.out.println("IOException, returning false :C");
+                                System.out.println(e.getCause());
+                                return false;
+                            }
+                        }
+                )
+                .collect(Collectors.toList());
+        System.out.println("candidateClasses.size() = " + candidateClasses.size());
+        candidateClasses = candidateClasses.stream()
+                .filter(
+                        (appClass) -> {
+                            try {
+                                return Arrays.asList(makeClass(appClass).getDeclaredFields()).stream()
+                                .anyMatch(
+                                        (field) -> {
+                                            try {
+                                                return field.getType().getName().equals(ctClass.getName());
+                                            } catch (NotFoundException notFoundException) {
+                                                System.out.println("NotFoundException, returning false :C");
+                                                System.out.println(notFoundException.getCause());
+                                                return false;
+                                            }
+                                        }
+                                );
+                                
+                            } catch (IOException  e) {
+                                System.out.println("IOException, returning false :C");
+                                System.out.println(e.getCause());
+                                return false;
+                            }
+                        }
+                )
+                .collect(Collectors.toList());
 
-        String[] testoooo = new String[]{"app", "SGCG", "SGCG.app", "models", "controllers", "app.models", "app.controllers"};
-        
-        for (String ttt : testoooo) {
-            System.out.println("new Reflections(\""+ ttt +"\").getSubTypesOf(Object.class) = " + new Reflections(ttt).getSubTypesOf(Object.class).size());
-        }
-        
-        
+        System.out.println("candidateClasses.size() = " + candidateClasses.size());
+        System.out.println("allClasses.size() = " + allClasses.size());
+
+//        Reflections reflections2 = new Reflections(PROJECT_PREFIX2);
+//        Set<Class<?>> annotatedClasses2 = reflections.getSubTypesOf(Object.class);
+//        Set<Class<?>> annotatedClasses3 = reflections.getSubTypesOf(Object.class);
+//
+//        System.out.println("annotatedClasses2.size() = " + annotatedClasses2.size());
+//        System.out.println("annotatedClasses3.size() = " + annotatedClasses3.size());
+//        for (Class<?> class1 : annotatedClasses2) {
+//            System.out.println("class1 = " + class1);
+//        }
+//        String[] testoooo = new String[]{"app", "SGCG", "SGCG.app", "models", "controllers", "app.models", "app.controllers", "tmp", "bytecode", "classes", "tmp.bytecode", "tmp.classes", "tmp.classes.models"};
+//        
+//        
+//        for (String ttt : testoooo) {
+//            System.out.println("new Reflections(\""+ ttt +"\").getSubTypesOf(Object.class) = " + new Reflections(ttt).getSubTypesOf(Object.class).size());
+//        }
 //        Set<Class<?>> annotatedClasses = new HashSet<>();
-
 //        System.out.println("annotatedClasses = " + annotatedClasses);
 //        annotatedClasses = annotatedClasses.stream()
 //                .filter(
@@ -113,19 +161,19 @@ public class SafeDeleteEnhancer extends Enhancer {
 //                        }
 //                )
 //                .collect(Collectors.toSet());
-        annotatedClasses = annotatedClasses.stream()
-                .filter(
-                        (clazz) -> {
-                            return Arrays.asList(clazz.getDeclaredFields()).stream()
-                            .anyMatch(
-                                    (field) -> {
-                                        return field.getType().getName().equals(ctClass.getName());
-                                    }
-                            );
-                        }
-                )
-                .collect(Collectors.toSet());
-
+//        annotatedClasses = allClasses.stream()
+//                .filter(
+//                        (clazz) -> {
+//                            return Arrays.asList(clazz.getDeclaredFields()).stream()
+//                            .anyMatch(
+//                                    (field) -> {
+//                                        return field.getType().getName().equals(ctClass.getName());
+//                                    }
+//                            );
+//                        }
+//                )
+//                .collect(Collectors.toSet());
+//        System.out.println("annotatedClasses.size() = " + annotatedClasses.size());
         System.out.println("/......////////////////asdfasdfasdfsadfasdf");
         System.out.println("ctClass.getName() = " + ctClass.getName());
         System.out.println("annotatedClasses = " + annotatedClasses);
@@ -185,7 +233,7 @@ public class SafeDeleteEnhancer extends Enhancer {
                 + "    %s"
                 + "}",
                 METHOD_NAME,
-                generateGetterBodyArray(annotatedClasses)
+                generateGetterBodyArray(candidateClasses)
         );
 
         System.out.println("referencedByGetter!!!");
@@ -249,7 +297,7 @@ public class SafeDeleteEnhancer extends Enhancer {
         return sb.toString();
     }
 
-    private String generateGetterBodyArray(Set<Class<?>> classes) {
+    private String generateGetterBodyArray(List<ApplicationClass> classes) {
 
         final String ARRAY_NAME = "classArray";
         final int ARRAY_SIZE = classes.size();
@@ -267,8 +315,8 @@ public class SafeDeleteEnhancer extends Enhancer {
         );
         sb.append("\n");
         int i = 0;
-        for (Class<?> clazz : classes) {
-            sb.append(String.format("%s[%d] = %s.class;", ARRAY_NAME, i, clazz.getName()));
+        for (ApplicationClass clazz : classes) {
+            sb.append(String.format("%s[%d] = %s.class;", ARRAY_NAME, i, clazz.name));
             sb.append("\n");
 
             i++;
