@@ -4,9 +4,10 @@ import play.PlayPlugin;
 import play.classloading.ApplicationClasses.ApplicationClass;
 
 /**
- * Clase para realizar el enhance sobre las clases que utilicen éste módulo.
+ * Play! enhancer for SafeDelete.
  * 
  * @author Edgar Hiram Hernández Reyes
+ * @version 0.1
  */
 public class SafeDeletePlugin extends PlayPlugin {
 

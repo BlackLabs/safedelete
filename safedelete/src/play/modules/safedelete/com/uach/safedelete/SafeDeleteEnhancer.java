@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javassist.CtClass;
+import javassist.CtField;
 import javassist.CtMethod;
 import javassist.NotFoundException;
 import play.Play;
@@ -13,10 +14,21 @@ import play.classloading.ApplicationClasses.ApplicationClass;
 import play.classloading.enhancers.Enhancer;
 
 /**
- * Agrega un método {@code Set<Class<?>>} llamado
- * <i>getReferencedBy</i> a las clases modelos de Morphia (anotadas con
- * {@link Entity}), que devuelve un arreglo con las clases que hacen referencia a esta clase. Además,
- * agrega un método para acceder al Set creado
+ * Play! module to add the method {@code getReferencedBy} to a model, where said
+ * model:
+ * <ul>
+ * <li>is a subclass of
+ * <pre>{@code extends play.modules.morphia.Model}</pre>
+ * </li>
+ * <li>is annotated with
+ * <pre>{@code com.google.code.morphia.annotations.Entity}</pre>
+ * </li>
+ * <li>is located in the package
+ * <pre>{@code models}</pre>
+ * </li>
+ * </ul>
+ * Said method allows a model to access an array of classes ({@code Class[]}) of
+ * other models that contain at least 1 reference to the former class.
  * 
 */
 public class SafeDeleteEnhancer extends Enhancer {
@@ -28,60 +40,71 @@ public class SafeDeleteEnhancer extends Enhancer {
         final CtClass ctClass = makeClass(applicationClass);
 
         final String entityFullyQualifiedName = "com.google.code.morphia.annotations.Entity";
+        final String modelKeyWord = "models";
 
-        //Sólo para modelos
+        //Only if current class is in the package "models"
+        if (!ctClass.getName().startsWith(modelKeyWord)) {
+            return;
+        }
+        //Only for morphia's Model
         if (!ctClass.subtypeOf(ctModelClass)) {
             return;
         }
-        //Sólo si tiene la anotación de @Entity de morphia
-        if (!checkCtClassForAnnotation(ctClass, entityFullyQualifiedName)) {
+        //Only if annotated with morphia's @Entity
+        if (!hasAnnotation(ctClass, entityFullyQualifiedName)) {
             return;
         }
 
         final String METHOD_NAME = "getReferencedBy";
 
-        //Verificar la no-existencia del método
+        //Verify that the method isn't already declared in the class
         try {
             CtMethod ctMethod = ctClass.getDeclaredMethod(METHOD_NAME);
             if (METHOD_NAME.equals(ctMethod.getName()) && ctMethod.getDeclaringClass().equals(ctClass)) {
-                //return;
-                throw new Exception(String.format("Error al realizar enhance de SafeDelete sobre la clase %s, el método %s ya se encuentra definido.", ctClass.getName(), METHOD_NAME));
+                throw new Exception(String.format("Cannot enhance class %s with SafeDelete; method %s is already defined.", ctClass.getName(), METHOD_NAME));
             }
         } catch (NotFoundException noReferencedByMethod) {
         }
 
-        //Cargar todas las clases disponibles
+        //Load all available classes
         List<ApplicationClass> allClasses = Play.classes.all();
 
-        //Filtrar para obtener aquellas clases que hacen referencia a la actual
         List<ApplicationClass> classesThatReferenceCurrentClass = allClasses.stream()
                 .filter(
                         (appClass) -> {
                             try {
-                                //Crear CtClass temporal
+                                //Verify the class's FullyQualifiedName; should start with "models"
+                                if (!appClass.name.startsWith(modelKeyWord)) {
+                                    return false;
+                                }
                                 CtClass tmpCtClass = makeClass(appClass);
-                                //Debe extender al Model de morphia
-                                return tmpCtClass.subtypeOf(ctModelClass)
-                                //Debe tener tambíen la anotación
-                                && checkCtClassForAnnotation(tmpCtClass, entityFullyQualifiedName)
-                                //Debe tener algún campo que haga referencia a la clase actual
+                                //Only for morphia's Model
+                                Boolean referencesCurrentClass = tmpCtClass.subtypeOf(ctModelClass)
+                                //Only if annotated with morphia's @Entity
+                                && hasAnnotation(tmpCtClass, entityFullyQualifiedName)
+                                //Check its fields for a reference to the current class
                                 && Arrays.asList(tmpCtClass.getDeclaredFields()).stream()
                                 .anyMatch(
                                         (ctField) -> {
                                             try {
-                                                return ctField.getType().getName().equals(ctClass.getName());
+                                                return checkCtFieldForCtClassReference(ctField, ctClass);
                                             } catch (NotFoundException e) {
                                                 return false;
                                             }
                                         }
                                 );
-                            } catch (IOException | NotFoundException e) {
+                                //Detatch from clasPool
+                                tmpCtClass.detach();
+
+                                return referencesCurrentClass;
+                            } catch (IOException | NotFoundException | ClassNotFoundException e) {
                                 return false;
                             }
                         }
                 )
                 .collect(Collectors.toList());
 
+        //Create method getReferencedBy using the classes that reference the current class
         String referencedByGetter = String.format(
                 "public static Class[] %s(){\n"
                 + "    %s"
@@ -97,6 +120,10 @@ public class SafeDeleteEnhancer extends Enhancer {
         ctClass.defrost();
     }
 
+    /**
+     * @deprecated @param classesToConcatenate -
+     * @return -
+     */
     private String concatenateClassesFQN(Set<Class<?>> classesToConcatenate) {
         String result = "";
         if (classesToConcatenate != null && !classesToConcatenate.isEmpty()) {
@@ -109,6 +136,10 @@ public class SafeDeleteEnhancer extends Enhancer {
         return result;
     }
 
+    /**
+     * @deprecated @param classes -
+     * @return -
+     */
     private String generateGetterBodySet(Set<Class<?>> classes) {
 
         final String setClassFullyQualifiedName = "java.util.Set";
@@ -146,8 +177,14 @@ public class SafeDeleteEnhancer extends Enhancer {
         return sb.toString();
     }
 
+    /**
+     * Creates the body of a method that returns a {@code Class[]} of all the
+     * classes defined by <i>classes</i>.
+     *
+     * @param classes {@code List<ApplicationClass>} of classes to return.
+     * @return {@code Class[]} of defined classes
+     */
     private String generateGetterBodyArray(List<ApplicationClass> classes) {
-
         final String ARRAY_NAME = "classArray";
         final int ARRAY_SIZE = classes.size();
 
@@ -163,18 +200,21 @@ public class SafeDeleteEnhancer extends Enhancer {
                 )
         );
         sb.append("\n");
-        int i = 0;
-        for (ApplicationClass clazz : classes) {
-            sb.append(String.format("%s[%d] = %s.class;", ARRAY_NAME, i, clazz.name));
+        for (int i = 0; i < classes.size(); i++) {
+            sb.append(String.format("%s[%d] = %s.class;", ARRAY_NAME, i, classes.get(i).name));
             sb.append("\n");
-
-            i++;
         }
         sb.append(String.format("return %s;", ARRAY_NAME));
 
         return sb.toString();
     }
 
+    /**
+     * @deprecated Usar {@link hasAnnotation(CtClass, String)}
+     * @param ctClass -
+     * @param annotationName -
+     * @return -
+     */
     private Boolean checkCtClassForAnnotation(CtClass ctClass, String annotationName) {
         Object[] annotations;
         try {
@@ -188,5 +228,27 @@ public class SafeDeleteEnhancer extends Enhancer {
             }
         }
         return false;
+    }
+
+    /**
+     * Checks if a {@code CtField} references {@code CtClass}. If the field uses
+     * generics, such as a {@code List<>}, then the method also checks the
+     * field's generic signature.
+     *
+     * @param ctField {@code CtField} to check
+     * @param ctClass {@code CtClass} to check for reference
+     * @return {@code true} if the <i>ctField</i> references the <i>ctClass</i>
+     * @throws NotFoundException
+     */
+    private Boolean checkCtFieldForCtClassReference(CtField ctField, CtClass ctClass) throws NotFoundException {
+        String genericSignature = ctField.getGenericSignature();
+
+        if (genericSignature == null) {
+            //Campo sin <>
+            return ctField.getType().getName().equals(ctClass.getName());
+        } else {
+            //Campo con <>
+            return genericSignature.contains(ctClass.getName().replace(".", "/"));
+        }
     }
 }
