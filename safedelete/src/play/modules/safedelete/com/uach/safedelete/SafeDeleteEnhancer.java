@@ -40,6 +40,7 @@ public class SafeDeleteEnhancer extends Enhancer {
         final CtClass ctClass = makeClass(applicationClass);
 
         final String entityFullyQualifiedName = "com.google.code.morphia.annotations.Entity";
+        final String transientFullyQualifiedName = "com.google.code.morphia.annotations.Transient";
         final String modelKeyWord = "models";
 
         //Only if current class is in the package "models"
@@ -73,7 +74,7 @@ public class SafeDeleteEnhancer extends Enhancer {
                 .filter(
                         (appClass) -> {
                             try {
-                                //Verify the class's FullyQualifiedName; should start with "models"
+                                //Verify the class' FullyQualifiedName; should start with "models"
                                 if (!appClass.name.startsWith(modelKeyWord)) {
                                     return false;
                                 }
@@ -87,8 +88,11 @@ public class SafeDeleteEnhancer extends Enhancer {
                                 .anyMatch(
                                         (ctField) -> {
                                             try {
-                                                return checkCtFieldForCtClassReference(ctField, ctClass);
-                                            } catch (NotFoundException e) {
+                                                //Ignore fields annotated with morphia's @Transient
+                                                return !hasAnnotation(ctField.getType(), transientFullyQualifiedName)
+                                                //Check reference
+                                                && checkCtFieldForCtClassReference(ctField, ctClass);
+                                            } catch (NotFoundException | ClassNotFoundException e) {
                                                 return false;
                                             }
                                         }
@@ -210,7 +214,7 @@ public class SafeDeleteEnhancer extends Enhancer {
     }
 
     /**
-     * @deprecated Usar {@link hasAnnotation(CtClass, String)}
+     * @deprecated Use {@link hasAnnotation(CtClass, String)} instead.
      * @param ctClass -
      * @param annotationName -
      * @return -
@@ -244,10 +248,10 @@ public class SafeDeleteEnhancer extends Enhancer {
         String genericSignature = ctField.getGenericSignature();
 
         if (genericSignature == null) {
-            //Campo sin <>
+            //Field without <>
             return ctField.getType().getName().equals(ctClass.getName());
         } else {
-            //Campo con <>
+            //Field with <>
             return genericSignature.contains(ctClass.getName().replace(".", "/"));
         }
     }
