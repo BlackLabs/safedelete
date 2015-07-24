@@ -89,7 +89,7 @@ public class SafeDeleteEnhancer extends Enhancer {
                                         (ctField) -> {
                                             try {
                                                 //Ignore fields annotated with morphia's @Transient
-                                                return !hasAnnotation(ctField.getType(), transientFullyQualifiedName)
+                                                return !hasAnnotation(ctField, transientFullyQualifiedName)
                                                 //Check reference
                                                 && checkCtFieldForCtClassReference(ctField, ctClass);
                                             } catch (NotFoundException | ClassNotFoundException e) {
