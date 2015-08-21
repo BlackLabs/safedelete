@@ -41,6 +41,7 @@ public class SafeDeleteEnhancer extends Enhancer {
 
         final String entityFullyQualifiedName = "com.google.code.morphia.annotations.Entity";
         final String transientFullyQualifiedName = "com.google.code.morphia.annotations.Transient";
+        final String referenceFullyQualifiedName = "com.google.code.morphia.annotations.Reference";
         final String modelKeyWord = "models";
 
         //Only if current class is in the package "models"
@@ -83,6 +84,8 @@ public class SafeDeleteEnhancer extends Enhancer {
                                 Boolean referencesCurrentClass = tmpCtClass.subtypeOf(ctModelClass)
                                 //Only if annotated with morphia's @Entity
                                 && hasAnnotation(tmpCtClass, entityFullyQualifiedName)
+                                //Avoid recursive references to itself
+                                && !ctClass.getName().equals(tmpCtClass.getName())
                                 //Check its fields for a reference to the current class
                                 && Arrays.asList(tmpCtClass.getDeclaredFields()).stream()
                                 .anyMatch(
@@ -90,6 +93,8 @@ public class SafeDeleteEnhancer extends Enhancer {
                                             try {
                                                 //Ignore fields annotated with morphia's @Transient
                                                 return !hasAnnotation(ctField, transientFullyQualifiedName)
+                                                //Only if field is annotated with morphia's @Reference
+                                                && hasAnnotation(ctField,  referenceFullyQualifiedName)
                                                 //Check reference
                                                 && checkCtFieldForCtClassReference(ctField, ctClass);
                                             } catch (NotFoundException | ClassNotFoundException e) {
