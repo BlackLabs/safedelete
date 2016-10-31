@@ -21,7 +21,7 @@ import play.classloading.enhancers.Enhancer;
  * <pre>{@code extends play.modules.morphia.Model}</pre>
  * </li>
  * <li>is annotated with
- * <pre>{@code com.google.code.morphia.annotations.Entity}</pre>
+ * <pre>{@code org.mongodb.morphia.annotations.Entity}</pre>
  * </li>
  * <li>is located in the package
  * <pre>{@code models}</pre>
@@ -39,9 +39,9 @@ public class SafeDeleteEnhancer extends Enhancer {
         final CtClass ctModelClass = classPool.getCtClass("play.modules.morphia.Model");
         final CtClass ctClass = makeClass(applicationClass);
 
-        final String entityFullyQualifiedName = "com.google.code.morphia.annotations.Entity";
-        final String transientFullyQualifiedName = "com.google.code.morphia.annotations.Transient";
-        final String referenceFullyQualifiedName = "com.google.code.morphia.annotations.Reference";
+        final String entityFullyQualifiedName = "org.mongodb.morphia.annotations.Entity";
+        final String transientFullyQualifiedName = "org.mongodb.morphia.annotations.Transient";
+        final String referenceFullyQualifiedName = "org.mongodb.morphia.annotations.Reference";
         final String modelKeyWord = "models";
 
         //Only if current class is in the package "models"

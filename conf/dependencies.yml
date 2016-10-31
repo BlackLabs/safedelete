@@ -2,4 +2,11 @@ self: play -> safedelete 0.1
 
 require:
     - play
-    - play -> morphia 1.2.12
+    - morphia -> morphia 1.5.0b
+
+repositories:
+    - morphia:
+        type: local
+        artifact: ${application.path}/play-morphia-1.5.0b.jar
+        contains:
+            - morphia -> morphia 1.5.0b
