@@ -1,4 +1,4 @@
-package com.uach.safedelete;
+package play.modules.safedelete;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -12,6 +12,7 @@ import javassist.NotFoundException;
 import play.Play;
 import play.classloading.ApplicationClasses.ApplicationClass;
 import play.classloading.enhancers.Enhancer;
+import play.Logger;
 
 /**
  * Play! module to add the method {@code getReferencedBy} to a model, where said

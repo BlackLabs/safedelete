@@ -1,4 +1,4 @@
-package com.uach.safedelete;
+package play.modules.safedelete;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

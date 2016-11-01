@@ -1,21 +1,21 @@
 *.log
 *.DS_Store
 
-safedelete/tmp
-safedelete/lib/
-safedelete/logs
-safedelete/precompile
-safedelete/javadoc
-safedelete/nbproject
-safedelete/.idea
-safedelete/node_modules
-safedelete/dist
+/tmp
+/lib/
+/logs
+/precompile
+/javadoc
+/nbproject
+/.idea
+/node_modules
+/dist
 
 safedelete.iml
 safedelete.ipr
 safedelete.iws
 
-safedelete/modules/
+/modules/
 .idea/
-/safedelete/test-result/
+/test-result/
 
