@@ -5,8 +5,8 @@ require:
     - morphia -> morphia 1.5.0b
 
 repositories:
-    - morphia:
-        type: local
-        artifact: ${application.path}/play-morphia-1.5.0b.jar
+    - blacklabs:
+        type: http
+        artifact: "http://repo.blacklabs.mx/[module]-[revision].zip"
         contains:
             - morphia -> morphia 1.5.0b
