@@ -12,7 +12,6 @@ import javassist.NotFoundException;
 import play.Play;
 import play.classloading.ApplicationClasses.ApplicationClass;
 import play.classloading.enhancers.Enhancer;
-import play.Logger;
 
 /**
  * Play! module to add the method {@code getReferencedBy} to a model, where said

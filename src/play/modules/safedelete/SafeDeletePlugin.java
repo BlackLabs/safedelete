@@ -16,7 +16,6 @@ public class SafeDeletePlugin extends PlayPlugin {
 
     @Override
     public void enhance(ApplicationClass applicationClass) throws Exception {
-        Logger.info("Initialized!");
         safeDeleteEnhancer.enhanceThisClass(applicationClass);
     }
 }
