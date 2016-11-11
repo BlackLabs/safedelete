@@ -1,8 +1,8 @@
-self: play -> safedelete 0.1
+self: play -> safedelete 0.11
 
 require:
     - play
-    - morphia -> morphia 1.5.0b
+    - morphia -> morphia 1.5.0e
 
 repositories:
     - blacklabs:
@@ -10,3 +10,4 @@ repositories:
         artifact: "http://repo.blacklabs.mx/[module]-[revision].zip"
         contains:
             - morphia -> morphia 1.5.0b
+            - morphia -> morphia 1.5.0e
